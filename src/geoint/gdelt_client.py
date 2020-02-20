@@ -68,12 +68,25 @@ class gdelt_client(object):
     def __init__(self):
         self._client = bigquery.Client()
 
-    def query_today(self, limit=1000):
-        """Queries the GDELT events table partitioned using days.
+    def __del__(self):
+        self._client.close()
+
+    def query(self, date, limit=1000):
+        """Queries the GDELT events table partitioned using a days restricted on a specific date.
         """
         query = ("SELECT GLOBALEVENTID, ActionGeo_Lat, ActionGeo_Long, ActionGeo_FullName, Actor1Geo_FullName, Actor2Geo_FullName, DATEADDED, SOURCEURL "
                  "FROM `gdelt-bq.gdeltv2.events_partitioned` WHERE DATE(_PARTITIONTIME) = "
-                 "'{0}' AND ActionGeo_Lat IS NOT NULL AND ActionGeo_Long IS NOT NULL LIMIT {1}".format(datetime.date.today(), limit)
+                 "'{0}' AND ActionGeo_Lat IS NOT NULL AND ActionGeo_Long IS NOT NULL LIMIT {1}".format(date, limit)
                  )
         query_job = self._client.query(query)
         return [gdelt_event(record) for record in query_job.result()]
+
+    def query_today(self, limit=1000):
+        """Queries the GDELT events table from today.
+        """
+        return self.query(datetime.date.today(), limit)
+
+    def query_yesterday(self, limit=1000):
+        """Queries the GDELT events table from yesterday.
+        """
+        return self.query((datetime.datetime.now()-datetime.timedelta(days=1)).date(), limit)

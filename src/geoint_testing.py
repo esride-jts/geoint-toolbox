@@ -44,6 +44,13 @@ class TestGdeltQueries(unittest.TestCase):
             self.assertIsNotNone(gdelt_event.id, "The event ID must not be none!")
             self.assertIsNotNone(gdelt_event.location, "The location must not be none!")
 
+    def test_gdelt_query_yesterday(self):
+        gdelt_events = self._client.query_yesterday()
+        self.assertIsNotNone(gdelt_events, "The events must not be none!")
+        for gdelt_event in gdelt_events:
+            self.assertIsNotNone(gdelt_event.id, "The event ID must not be none!")
+            self.assertIsNotNone(gdelt_event.location, "The location must not be none!")
+
 
 
 if "__main__" == __name__:
