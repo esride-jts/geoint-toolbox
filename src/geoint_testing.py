@@ -73,7 +73,7 @@ class TestGdeltFeatureFactory(unittest.TestCase):
 
 
 
-@unittest.skip("Disable ArcObjects for default testing.")
+#@unittest.skip("Disable ArcObjects for default testing.")
 class TestGdeltFeatureWorkspace(unittest.TestCase):
 
     def setUp(self):

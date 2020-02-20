@@ -36,6 +36,10 @@ class gdelt_event(object):
         self.__fullname = record.ActionGeo_FullName
         self.__values = [value for value in record]
 
+        # DATEADDED creates a C-long overflow
+        # must be treated as a string!
+        self.__values[59] = str(self.__values[59])
+
     def __get_id(self):
         return self.__id
 

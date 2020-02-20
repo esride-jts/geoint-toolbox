@@ -37,6 +37,6 @@ class gdelt_feature_factory(object):
         """
         location = gdelt_event.location
         feature = [arcpy.Point(location[0], location[1])]
-        feature.append(gdelt_event.id)
-        feature.append(gdelt_event.fullname)
+        for value in gdelt_event.values:
+            feature.append(value)
         return feature
