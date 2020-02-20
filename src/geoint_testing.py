@@ -30,6 +30,7 @@ For more information, please see https://cloud.google.com/docs/authentication/ge
 
 import unittest
 from geoint.gdelt_client import gdelt_client
+from geoint.gdelt_feature_factory import gdelt_feature_factory
 
 class TestGdeltQueries(unittest.TestCase):
 
@@ -51,6 +52,21 @@ class TestGdeltQueries(unittest.TestCase):
             self.assertIsNotNone(gdelt_event.id, "The event ID must not be none!")
             self.assertIsNotNone(gdelt_event.location, "The location must not be none!")
 
+
+
+class TestGdeltFeatureFactory(unittest.TestCase):
+
+    def setUp(self):
+        # Recreate the client before any test
+        self._client = gdelt_client()
+        self._feature_factory = gdelt_feature_factory()
+
+    def test_gdelt_create_features_today(self):
+        gdelt_events = self._client.query_today()
+        self.assertIsNotNone(gdelt_events, "The events must not be none!")
+        for gdelt_event in gdelt_events:
+            gdelt_feature = self._feature_factory.create_feature(gdelt_event)
+            self.assertIsNotNone(gdelt_feature, "The feature must not be none!")
 
 
 if "__main__" == __name__:
