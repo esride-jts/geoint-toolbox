@@ -79,7 +79,11 @@ class gdelt_client(object):
         self._client = bigquery.Client()
 
     def __del__(self):
-        self._client.close()
+        # Close works with version 1.24.0
+        # We had to downgrade to version 1.22.0
+        # See https://github.com/esride-jts/geoint-toolbox/issues/2
+        #self._client.close()
+        del self._client
 
     def query(self, date, limit=1000):
         """Queries the GDELT events table partitioned using a days restricted on a specific date.

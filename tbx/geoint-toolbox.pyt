@@ -74,6 +74,7 @@ class MakeLayerFromGdeltTool(object):
             parameterType="Required",
             direction="Output"
         )
+		outFeatures.value = "Events_{0}".format(str(datetime.date.today()).replace(".", ""))
 
         params = [eventDate, limit, outFeatures]
         return params
