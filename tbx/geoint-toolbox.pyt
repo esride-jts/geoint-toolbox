@@ -24,6 +24,12 @@
 #
 
 import arcpy
+import datetime
+import os
+from geoint.gdelt_client import gdelt_client
+from geoint.gdelt_feature_factory import gdelt_feature_factory
+from geoint.gdelt_workspace import gdelt_workspace
+
 class Toolbox(object):
     def __init__(self):
         """GEOINT Toolbox"""
@@ -35,25 +41,77 @@ class Toolbox(object):
 class MakeLayerFromGdeltTool(object):
     def __init__(self):
         """Make a layer from GDELT"""
-        self.label = "Make layer from GDELT Tool"
-        self.description = "Queries Big Tables and save the result as a layer."
+        self.label = "Make layer from GDELT events"
+        self.description = "Queries the GDELT events table and saves the result as a layer."
         self.canRunInBackground = True
+
     def getParameterInfo(self):
         """Define parameter definitions"""
-        params = None
+        # See https://pro.arcgis.com/de/pro-app/arcpy/geoprocessing_and_python/defining-parameters-in-a-python-toolbox.htm
+        
+        eventDate = arcpy.Parameter(
+            displayName="Event date",
+            name="event_date",
+            datatype="GPDate",
+            parameterType="Required",
+            direction="Input"
+        )
+        eventDate.value = str(datetime.date.today())
+
+        limit = arcpy.Parameter(
+            displayName="Max number of records",
+            name="limit",
+            datatype="GPLong",
+            parameterType="Required",
+            direction="Input"
+        )
+        limit.value = 1000
+
+        outFeatures = arcpy.Parameter(
+            displayName="Output features",
+            name="out_features",
+            datatype="DEFeatureClass",
+            parameterType="Required",
+            direction="Output"
+        )
+
+        params = [eventDate, limit, outFeatures]
         return params
+
     def isLicensed(self):
         """Set whether tool is licensed to execute."""
         return True
+
     def updateParameters(self, parameters):
         """Modify the values and properties of parameters before internal
         validation is performed.  This method is called whenever a parameter
         has been changed."""
         return
+
     def updateMessages(self, parameters):
         """Modify the messages created by internal validation for each tool
         parameter.  This method is called after internal validation."""
         return
+
     def execute(self, parameters, messages):
-        """The source code of the tool."""
+        """Creates a new GDELT client and queries the GDELT events table."""
+
+        eventDate = parameters[0].value
+        limit = parameters[1].value
+        outFeatures = parameters[2].valueAsText
+        workspacePath = os.path.dirname(outFeatures)
+        tableName = os.path.basename(outFeatures).rstrip(os.path.splitext(outFeatures)[1])
+
+        client = gdelt_client()
+        try:
+            gdelt_events = client.query_today(limit)
+            workspace = gdelt_workspace(workspacePath)
+            feature_factory = gdelt_feature_factory()
+            gdelt_features = [feature_factory.create_feature(gdelt_event) for gdelt_event in gdelt_events]
+            workspace.insert_features(tableName, gdelt_features)
+            arcpy.AddMessage("GDELT records were inserted into the feature class.")
+        except BaseException as ex:
+            arcpy.AddError(ex)
+        finally:
+            del client
         return
