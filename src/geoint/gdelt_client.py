@@ -34,6 +34,7 @@ class gdelt_event(object):
         self.__id = record.GLOBALEVENTID
         self.__location = (record.ActionGeo_Long, record.ActionGeo_Lat)
         self.__fullname = record.ActionGeo_FullName
+        self.__values = [value for value in record]
 
     def __get_id(self):
         return self.__id
@@ -53,11 +54,16 @@ class gdelt_event(object):
     def __set_fullname(self, fullname):
         self.__fullname = fullname
 
+    def __get_values(self):
+        return self.__values
+
     id = property(__get_id, __set_id)
 
     location = property(__get_location, __set_location)
 
     fullname = property(__get_fullname, __set_fullname)
+
+    values = property(__get_values)
 
 
 
@@ -74,7 +80,7 @@ class gdelt_client(object):
     def query(self, date, limit=1000):
         """Queries the GDELT events table partitioned using a days restricted on a specific date.
         """
-        query = ("SELECT GLOBALEVENTID, ActionGeo_Lat, ActionGeo_Long, ActionGeo_FullName, Actor1Geo_FullName, Actor2Geo_FullName, DATEADDED, SOURCEURL "
+        query = ("SELECT * "
                  "FROM `gdelt-bq.gdeltv2.events_partitioned` WHERE DATE(_PARTITIONTIME) = "
                  "'{0}' AND ActionGeo_Lat IS NOT NULL AND ActionGeo_Long IS NOT NULL LIMIT {1}".format(date, limit)
                  )

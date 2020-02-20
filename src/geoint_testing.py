@@ -31,6 +31,7 @@ For more information, please see https://cloud.google.com/docs/authentication/ge
 import unittest
 from geoint.gdelt_client import gdelt_client
 from geoint.gdelt_feature_factory import gdelt_feature_factory
+from geoint.gdelt_workspace import gdelt_workspace
 
 class TestGdeltQueries(unittest.TestCase):
 
@@ -39,14 +40,15 @@ class TestGdeltQueries(unittest.TestCase):
         self._client = gdelt_client()
 
     def test_gdelt_query_today(self):
-        gdelt_events = self._client.query_today()
+        gdelt_events = self._client.query_today(limit=10)
         self.assertIsNotNone(gdelt_events, "The events must not be none!")
         for gdelt_event in gdelt_events:
             self.assertIsNotNone(gdelt_event.id, "The event ID must not be none!")
             self.assertIsNotNone(gdelt_event.location, "The location must not be none!")
+            self.assertIsNotNone(gdelt_event.values, "The values must not be none!")
 
     def test_gdelt_query_yesterday(self):
-        gdelt_events = self._client.query_yesterday()
+        gdelt_events = self._client.query_yesterday(limit=10)
         self.assertIsNotNone(gdelt_events, "The events must not be none!")
         for gdelt_event in gdelt_events:
             self.assertIsNotNone(gdelt_event.id, "The event ID must not be none!")
@@ -54,6 +56,7 @@ class TestGdeltQueries(unittest.TestCase):
 
 
 
+@unittest.skip("Disable Feature mapping for default testing.")
 class TestGdeltFeatureFactory(unittest.TestCase):
 
     def setUp(self):
@@ -62,11 +65,32 @@ class TestGdeltFeatureFactory(unittest.TestCase):
         self._feature_factory = gdelt_feature_factory()
 
     def test_gdelt_create_features_today(self):
-        gdelt_events = self._client.query_today()
+        gdelt_events = self._client.query_today(limit=10)
         self.assertIsNotNone(gdelt_events, "The events must not be none!")
         for gdelt_event in gdelt_events:
             gdelt_feature = self._feature_factory.create_feature(gdelt_event)
             self.assertIsNotNone(gdelt_feature, "The feature must not be none!")
+
+
+
+@unittest.skip("Disable ArcObjects for default testing.")
+class TestGdeltFeatureWorkspace(unittest.TestCase):
+
+    def setUp(self):
+        # Recreate the client before any test
+        self._client = gdelt_client()
+        self._feature_factory = gdelt_feature_factory()
+
+    def test_gdelt_insert_into_gdb(self):
+        import arcpy
+        gdelt_events = self._client.query_today(limit=10)
+        self.assertIsNotNone(gdelt_events, "The events must not be none!")
+        gdelt_features = [self._feature_factory.create_feature(gdelt_event) for gdelt_event in gdelt_events]
+        arcpy.env.overwriteOutput = True
+        path = arcpy.env.scratchGDB
+        workspace = gdelt_workspace(path)
+        workspace.insert_features("GDELT_Actions", gdelt_features)
+        
 
 
 if "__main__" == __name__:
