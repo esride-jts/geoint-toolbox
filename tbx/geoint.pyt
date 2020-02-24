@@ -87,6 +87,8 @@ class MakeLayerFromGdeltTool(object):
         """Modify the values and properties of parameters before internal
         validation is performed.  This method is called whenever a parameter
         has been changed."""
+        if (parameters[0].altered):
+            parameters[2].value = "Events_{0}".format(str(parameters[0].value.date()).replace("-", ""))
         return
 
     def updateMessages(self, parameters):
@@ -105,7 +107,7 @@ class MakeLayerFromGdeltTool(object):
 
         client = gdelt_client()
         try:
-            gdelt_events = client.query_today(limit)
+            gdelt_events = client.query(eventDate.date(), limit)
             workspace = gdelt_workspace(workspacePath)
             feature_factory = gdelt_feature_factory()
             gdelt_features = [feature_factory.create_feature(gdelt_event) for gdelt_event in gdelt_events]
