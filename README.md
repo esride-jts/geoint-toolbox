@@ -1,2 +1,2 @@
 # geoint-toolbox
-Allows accessing Big Query Tables and Data Lakes directly from ArcGIS Pro.
+Allows accessing Big Query Tables directly from ArcGIS Pro.
