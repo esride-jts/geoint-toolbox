@@ -28,6 +28,7 @@ Please set GOOGLE_APPLICATION_CREDENTIALS or explicitly create credentials and r
 For more information, please see https://cloud.google.com/docs/authentication/getting-started.
 """
 
+import datetime
 import unittest
 from geoint.gdelt_client import gdelt_client
 from geoint.gdelt_feature_factory import gdelt_feature_factory
@@ -50,6 +51,14 @@ class TestGdeltQueries(unittest.TestCase):
     def test_gdelt_query_yesterday(self):
         gdelt_events = self._client.query_yesterday(limit=10)
         self.assertIsNotNone(gdelt_events, "The events must not be none!")
+        for gdelt_event in gdelt_events:
+            self.assertIsNotNone(gdelt_event.id, "The event ID must not be none!")
+            self.assertIsNotNone(gdelt_event.location, "The location must not be none!")
+
+    def test_gdelt_query_bbox(self):
+        date = datetime.date.today()
+        bbox = { "xmin": -180, "xmax": 180, "ymin": -90, "ymax": 90 }
+        gdelt_events = self._client.query_bbox(date, bbox)
         for gdelt_event in gdelt_events:
             self.assertIsNotNone(gdelt_event.id, "The event ID must not be none!")
             self.assertIsNotNone(gdelt_event.location, "The location must not be none!")
