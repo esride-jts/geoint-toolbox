@@ -32,7 +32,7 @@ class gdelt_workspace(object):
     def __init__(self, path):
         self._path = path
 
-    def insert_features(self, table_name, gdelt_features):
+    def insert_features(self, table_name, gdelt_features, areas_of_interests=None):
         """Inserts a bunch of GDELT features into a feature class of this workspace.
         Swallows any exception during insert row!
         """
@@ -41,7 +41,17 @@ class gdelt_workspace(object):
         with arcpy.da.InsertCursor(feature_class, field_names) as insert_cursor:
             for gdelt_feature in gdelt_features:
                 try:
-                    insert_cursor.insertRow(gdelt_feature)
+                    if (areas_of_interests):
+                        disjoint = True
+                        for area in areas_of_interests:
+                            geometry = gdelt_feature[0]
+                            disjoint = area.disjoint(geometry)
+                            if not disjoint:
+                                break
+                        if not disjoint:
+                            insert_cursor.insertRow(gdelt_feature)
+                    else:
+                        insert_cursor.insertRow(gdelt_feature)
                 except BaseException as ex:
                     print(ex)
 

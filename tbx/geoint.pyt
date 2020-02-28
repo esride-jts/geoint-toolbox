@@ -76,7 +76,15 @@ class MakeLayerFromGdeltTool(object):
         )
         outFeatures.value = "Events_{0}".format(str(datetime.date.today()).replace("-", ""))
 
-        params = [eventDate, limit, outFeatures]
+        inFeatures = arcpy.Parameter(
+            displayName="Input features",
+            name="in_features",
+            datatype="GPFeatureRecordSetLayer",
+            parameterType="Optional",
+            direction="Input"
+        )
+
+        params = [eventDate, limit, outFeatures, inFeatures]
         return params
 
     def isLicensed(self):
@@ -105,13 +113,32 @@ class MakeLayerFromGdeltTool(object):
         workspacePath = os.path.dirname(outFeatures)
         tableName = os.path.basename(outFeatures).rstrip(os.path.splitext(outFeatures)[1])
 
+        inFeatures = parameters[3].value
+        areas_of_interests = None
+            
         client = gdelt_client()
         try:
-            gdelt_events = client.query(eventDate.date(), limit)
+            if (inFeatures):
+                gdelt_events = []
+                inCatalogPath = arcpy.Describe(inFeatures).catalogPath
+                wgs84 = arcpy.SpatialReference(4326)
+                areas_of_interests = []
+                with arcpy.da.SearchCursor(inCatalogPath, ["SHAPE@"], spatial_reference=wgs84) as cursor:
+                    for inFeature in cursor:
+                        geometry = inFeature[0]
+                        areas_of_interests.append(geometry)
+                        extent = geometry.extent
+                        bbox = { "xmin": extent.XMin, "xmax": extent.XMax, "ymin": extent.YMin, "ymax": extent.YMax }
+                        gdelt_events += client.query_bbox(eventDate.date(), bbox, limit)
+            else:
+                gdelt_events = client.query(eventDate.date(), limit)
             workspace = gdelt_workspace(workspacePath)
             feature_factory = gdelt_feature_factory()
             gdelt_features = [feature_factory.create_feature(gdelt_event) for gdelt_event in gdelt_events]
-            workspace.insert_features(tableName, gdelt_features)
+            if (areas_of_interests):
+                workspace.insert_features(tableName, gdelt_features, areas_of_interests)
+            else:
+                workspace.insert_features(tableName, gdelt_features)
             arcpy.AddMessage("GDELT records were inserted into the feature class.")
         except BaseException as ex:
             arcpy.AddError(ex)

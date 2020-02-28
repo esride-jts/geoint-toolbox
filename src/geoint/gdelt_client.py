@@ -101,7 +101,7 @@ class gdelt_client(object):
         query = ("SELECT * "
                  "FROM `gdelt-bq.gdeltv2.events_partitioned` WHERE DATE(_PARTITIONTIME) = "
                  "'{0}' AND ActionGeo_Lat IS NOT NULL AND ActionGeo_Long IS NOT NULL "
-                 "AND ActionGeo_Long >= {1} AND ActionGeo_Long <= {2} AND ActionGeo_Lat >= {3} AND ActionGeo_Long <= {4} LIMIT {5}".format(date, bbox["xmin"], bbox["xmax"], bbox["ymin"], bbox["ymax"], limit)
+                 "AND ActionGeo_Long >= {1} AND ActionGeo_Long <= {2} AND ActionGeo_Lat >= {3} AND ActionGeo_Lat <= {4} LIMIT {5}".format(date, bbox["xmin"], bbox["xmax"], bbox["ymin"], bbox["ymax"], limit)
                  )
         query_job = self._client.query(query)
         return [gdelt_event(record) for record in query_job.result()]
