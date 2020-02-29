@@ -34,7 +34,6 @@ class gdelt_workspace(object):
 
     def insert_features(self, table_name, gdelt_features, areas_of_interests=None):
         """Inserts a bunch of GDELT features into a feature class of this workspace.
-        Swallows any exception during insert row!
         """
         (feature_class, fields) = self._create_gdelt_feature_class(table_name)
         field_names = ["SHAPE@"] + [field[0] for field in fields]
@@ -53,12 +52,45 @@ class gdelt_workspace(object):
                     else:
                         insert_cursor.insertRow(gdelt_feature)
                 except BaseException as ex:
-                    print(ex)
+                    arcpy.AddError(ex)
+                    arcpy.AddError(gdelt_feature)
+                    break
+
+    def insert_graph_features(self, table_name, gdelt_features, areas_of_interests=None):
+        """Inserts a bunch of GDELT graph features into a feature class of this workspace.
+        """
+        (feature_class, fields) = self._create_gdelt_graph_feature_class(table_name)
+        field_names = ["SHAPE@"] + [field[0] for field in fields]
+        with arcpy.da.InsertCursor(feature_class, field_names) as insert_cursor:
+            for gdelt_feature in gdelt_features:
+                try:
+                    if (areas_of_interests):
+                        disjoint = True
+                        for area in areas_of_interests:
+                            geometry = gdelt_feature[0]
+                            disjoint = area.disjoint(geometry)
+                            if not disjoint:
+                                break
+                        if not disjoint:
+                            insert_cursor.insertRow(gdelt_feature)
+                    else:
+                        insert_cursor.insertRow(gdelt_feature)
+                except BaseException as ex:
+                    arcpy.AddError(ex)
+                    arcpy.AddError(gdelt_feature)
+                    break
 
     def _create_gdelt_feature_class(self, table_name):
         feature_class_result = arcpy.management.CreateFeatureclass(self._path, table_name, geometry_type="POINT", spatial_reference=4326)
         feature_class = feature_class_result[0]
         fields = self._create_fields()
+        arcpy.management.AddFields(feature_class, fields)
+        return (feature_class, fields)
+
+    def _create_gdelt_graph_feature_class(self, table_name):
+        feature_class_result = arcpy.management.CreateFeatureclass(self._path, table_name, geometry_type="POINT", spatial_reference=4326)
+        feature_class = feature_class_result[0]
+        fields = self._create_graph_fields()
         arcpy.management.AddFields(feature_class, fields)
         return (feature_class, fields)
 
@@ -125,4 +157,20 @@ class gdelt_workspace(object):
             ["ActionGeo_FeatureID", "TEXT", "ActionGeo_FeatureID", 255],
             ["DATEADDED", "TEXT", "DATEADDED", 255],
             ["SOURCEURL", "TEXT", "SOURCEURL", 1000]
+        ]
+
+    def _create_graph_fields(self):
+        return [
+            ["GKGRECORDID", "TEXT", "GKGRECORDID", 255],
+            ["Location_Type", "LONG"],
+            ["Location_FullName", "TEXT", "Location_FullName", 1000],
+            ["Location_CountryCode", "TEXT", "Location_CountryCode", 255],
+            ["Location_ADM1Code", "TEXT", "Location_ADM1Code", 255],
+            ["Location_ADM2Code", "TEXT", "Location_ADM2Code", 255],
+            ["Location_Lat", "DOUBLE"],
+            ["Location_Long", "DOUBLE"],
+            ["Location_FeatureID", "TEXT", "Location_FeatureID", 255],
+            ["DATE", "TEXT", "DATE", 255],
+            ["SourceCommonName", "TEXT", "SourceCommonName", 255],
+            ["DocumentIdentifier", "TEXT", "DocumentIdentifier", 1000]
         ]

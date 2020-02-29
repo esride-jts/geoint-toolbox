@@ -36,7 +36,7 @@ class Toolbox(object):
         self.label = "GEOINT Toolbox"
         self.alias = "GEOINT Toolbox"
         # List of tool classes associated with this toolbox
-        self.tools = [MakeLayerFromGdeltTool]
+        self.tools = [MakeLayerFromGdeltTool, MakeLayerFromGraphGdeltTool]
 
 class MakeLayerFromGdeltTool(object):
     def __init__(self):
@@ -140,6 +140,146 @@ class MakeLayerFromGdeltTool(object):
             else:
                 workspace.insert_features(tableName, gdelt_features)
             arcpy.AddMessage("GDELT records were inserted into the feature class.")
+        except BaseException as ex:
+            arcpy.AddError(ex)
+        finally:
+            del client
+        return
+
+
+
+class MakeLayerFromGraphGdeltTool(object):
+    def __init__(self):
+        """Make a layer from GDELT"""
+        self.label = "Make layer from GDELT knowledge graph entries"
+        self.description = "Queries the GDELT knowledge graph and saves the result as a layer."
+        self.canRunInBackground = True
+
+    def getParameterInfo(self):
+        """Define parameter definitions"""
+        # See https://pro.arcgis.com/de/pro-app/arcpy/geoprocessing_and_python/defining-parameters-in-a-python-toolbox.htm
+        
+        eventDate = arcpy.Parameter(
+            displayName="Event date",
+            name="event_date",
+            datatype="GPDate",
+            parameterType="Required",
+            direction="Input"
+        )
+        eventDate.value = str(datetime.date.today())
+
+        theme = arcpy.Parameter(
+            displayName="Theme",
+            name="theme",
+            datatype="GPString",
+            parameterType="Required",
+            direction="Input"
+        )
+        theme.filter.list = [
+            "ARMEDCONFLICT", "ARREST", "ASSASSINATION", 
+            "BLACK_MARKET", 
+            "CEASEFIRE", "CORRUPTION", "CYBER_ATTACK",
+            "DELAY", "DEMOCRACY",
+            "ECON_COST_OF_LIVING", "ECON_IDENTITYTHEFT", "ECON_STOCKMARKET",
+            "ENV_CLIMATECHANGE",
+            "EVACUATION",
+            "EXTREMISM",
+            "GENERAL_HEALTH",
+            "IMMIGRATION",
+            "INTERNET_BLACKOUT",
+            "JIHAD",
+            "KILL",
+            "MEDICAL",
+            "MILITARY",
+            "NATURAL_DISASTER",
+            "REFUGEES",
+            "STRIKE",
+            "TAX_DISEASE",
+            "TERROR",
+            "VANDALIZE",
+            "WOUND"]
+
+        limit = arcpy.Parameter(
+            displayName="Max number of records",
+            name="limit",
+            datatype="GPLong",
+            parameterType="Required",
+            direction="Input"
+        )
+        limit.value = 1000
+
+        outFeatures = arcpy.Parameter(
+            displayName="Output features",
+            name="out_features",
+            datatype="DEFeatureClass",
+            parameterType="Required",
+            direction="Output"
+        )
+        outFeatures.value = "Events_{0}".format(str(datetime.date.today()).replace("-", ""))
+
+        inFeatures = arcpy.Parameter(
+            displayName="Input features",
+            name="in_features",
+            datatype="GPFeatureRecordSetLayer",
+            parameterType="Optional",
+            direction="Input"
+        )
+
+        params = [eventDate, theme, limit, outFeatures, inFeatures]
+        return params
+
+    def isLicensed(self):
+        """Set whether tool is licensed to execute."""
+        return True
+
+    def updateParameters(self, parameters):
+        """Modify the values and properties of parameters before internal
+        validation is performed.  This method is called whenever a parameter
+        has been changed."""
+        if (parameters[0].altered):
+            parameters[3].value = "Themes_{0}".format(str(parameters[0].value.date()).replace("-", ""))
+        return
+
+    def updateMessages(self, parameters):
+        """Modify the messages created by internal validation for each tool
+        parameter.  This method is called after internal validation."""
+        return
+
+    def execute(self, parameters, messages):
+        """Creates a new GDELT client and queries the GDELT knowledge graph."""
+
+        eventDate = parameters[0].value
+        theme = parameters[1].valueAsText
+        limit = parameters[2].value
+        outFeatures = parameters[3].valueAsText
+        workspacePath = os.path.dirname(outFeatures)
+        tableName = os.path.basename(outFeatures).rstrip(os.path.splitext(outFeatures)[1])
+
+        inFeatures = parameters[4].value
+        areas_of_interests = None
+            
+        client = gdelt_client()
+        try:
+            if (inFeatures):
+                gdelt_graph_records = []
+                inCatalogPath = arcpy.Describe(inFeatures).catalogPath
+                wgs84 = arcpy.SpatialReference(4326)
+                areas_of_interests = []
+                with arcpy.da.SearchCursor(inCatalogPath, ["SHAPE@"], spatial_reference=wgs84) as cursor:
+                    for inFeature in cursor:
+                        geometry = inFeature[0]
+                        areas_of_interests.append(geometry)
+                        gdelt_graph_records += client.query_graph(eventDate.date(), theme, limit)
+            else:
+                gdelt_graph_records = client.query_graph(eventDate.date(), theme, limit)
+            workspace = gdelt_workspace(workspacePath)
+            feature_factory = gdelt_feature_factory()
+            gdelt_features = [feature_factory.create_feature(gdelt_graph_record) for gdelt_graph_record in gdelt_graph_records]
+            if (areas_of_interests):
+                workspace.insert_graph_features(tableName, gdelt_features, areas_of_interests)
+            else:
+                workspace.insert_graph_features(tableName, gdelt_features)
+            arcpy.AddMessage("GDELT graph records were inserted into the feature class.")
         except BaseException as ex:
             arcpy.AddError(ex)
         finally:

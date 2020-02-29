@@ -77,12 +77,12 @@ class gdelt_graph_record(object):
 
     def __init__(self, values):
         self.__id = values[0]
-        self.__location = (float(values[7]), float(values[6]))
+        self.__location = (values[7], values[6])
         self.__values = values
 
         # DATE creates a C-long overflow
         # must be treated as a string!
-        self.__values[8] = str(self.__values[8])
+        self.__values[9] = str(self.__values[9])
 
     def __get_id(self):
         return self.__id
@@ -110,10 +110,16 @@ class gdelt_graph_entry(object):
         locations = record[1].split(";")
         for location in locations:
             values = [record[0]]
-            location_values = location.split("#")
-            values += location_values[:7]
-            values += [value for value in record[2:]]
             try:
+                location_values = location.split("#")
+                # Location type is LONG
+                location_values[0] = int(location_values[0])
+                # Latitude and Longitude are FLOAT
+                location_values[5] = float(location_values[5])
+                location_values[6] = float(location_values[6])
+                # Only append to the Feature ID
+                values += location_values[:8]
+                values += [value for value in record[2:]]
                 self.__records.append(gdelt_graph_record(values))
             except:
                 # Swallow any exception like float parsing
