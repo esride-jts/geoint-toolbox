@@ -34,6 +34,7 @@ from geoint.gdelt_client import gdelt_client
 from geoint.gdelt_feature_factory import gdelt_feature_factory
 from geoint.gdelt_workspace import gdelt_workspace
 
+@unittest.skip("Disable GDELT event queries for default testing.")
 class TestGdeltQueries(unittest.TestCase):
 
     def setUp(self):
@@ -65,6 +66,25 @@ class TestGdeltQueries(unittest.TestCase):
 
 
 
+#@unittest.skip("Disable GDELT graph queries for default testing.")
+class TestGdeltGraphQueries(unittest.TestCase):
+
+    def setUp(self):
+        # Recreate the client before any test
+        self._client = gdelt_client()
+
+    def test_gdelt_query_graph_today(self):
+        date = datetime.date.today()
+        theme = "ARMEDCONFLICT"
+        gdelt_graph_records = self._client.query_graph(date, theme, limit=10)
+        self.assertIsNotNone(gdelt_graph_records, "The events must not be none!")
+        for gdelt_graph_record in gdelt_graph_records:
+            self.assertIsNotNone(gdelt_graph_record.id, "The event ID must not be none!")
+            self.assertIsNotNone(gdelt_graph_record.location, "The location must not be none!")
+            self.assertIsNotNone(gdelt_graph_record.values, "The values must not be none!")
+
+
+
 @unittest.skip("Disable Feature mapping for default testing.")
 class TestGdeltFeatureFactory(unittest.TestCase):
 
@@ -82,7 +102,7 @@ class TestGdeltFeatureFactory(unittest.TestCase):
 
 
 
-#@unittest.skip("Disable ArcObjects for default testing.")
+@unittest.skip("Disable ArcObjects for default testing.")
 class TestGdeltFeatureWorkspace(unittest.TestCase):
 
     def setUp(self):

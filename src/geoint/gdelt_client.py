@@ -71,6 +71,61 @@ class gdelt_event(object):
 
 
 
+class gdelt_graph_record(object):
+    """Represents a GDELT knowledge graph record.
+    """
+
+    def __init__(self, values):
+        self.__id = values[0]
+        self.__location = (float(values[7]), float(values[6]))
+        self.__values = values
+
+        # DATE creates a C-long overflow
+        # must be treated as a string!
+        self.__values[8] = str(self.__values[8])
+
+    def __get_id(self):
+        return self.__id
+
+    def __get_location(self):
+        return self.__location
+
+    def __get_values(self):
+        return self.__values
+
+    id = property(__get_id)
+
+    location = property(__get_location)
+    
+    values = property(__get_values)
+
+
+
+class gdelt_graph_entry(object):
+    """Represents an entry in the GDELT knowledge graph.
+    """
+
+    def __init__(self, record):
+        self.__records = []
+        locations = record[1].split(";")
+        for location in locations:
+            values = [record[0]]
+            location_values = location.split("#")
+            values += location_values[:7]
+            values += [value for value in record[2:]]
+            try:
+                self.__records.append(gdelt_graph_record(values))
+            except:
+                # Swallow any exception like float parsing
+                pass
+
+    def __get_records(self):
+        return self.__records
+
+    records = property(__get_records)
+
+
+
 class gdelt_client(object):
     """Client for accesing the GDELT events table.
     """
@@ -115,3 +170,13 @@ class gdelt_client(object):
         """Queries the GDELT events table from yesterday.
         """
         return self.query((datetime.datetime.now()-datetime.timedelta(days=1)).date(), limit)
+
+    def query_graph(self, date, theme, limit=1000):
+        """Queries the global knowledge graph by using a specific date and a theme.
+        """
+        query = ("SELECT GKGRECORDID, V2Locations, DATE, SourceCommonName, DocumentIdentifier "
+                 "FROM `gdelt-bq.gdeltv2.gkg_partitioned` WHERE DATE(_PARTITIONTIME) = "
+                 "'{0}' AND V2Locations IS NOT NULL AND V2Themes LIKE '%{1}%' LIMIT {2}".format(date, theme, limit)
+                 )
+        query_job = self._client.query(query)
+        return [record for graph_record in query_job.result() for record in gdelt_graph_entry(graph_record).records]
