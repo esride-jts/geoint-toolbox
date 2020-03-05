@@ -199,6 +199,14 @@ class MakeLayerFromGraphGdeltTool(object):
             "VANDALIZE",
             "WOUND"]
 
+        customTheme = arcpy.Parameter(
+            displayName="Custom theme",
+            name="custom_theme",
+            datatype="GPString",
+            parameterType="Optional",
+            direction="Input"
+        )
+
         limit = arcpy.Parameter(
             displayName="Max number of records",
             name="limit",
@@ -225,7 +233,7 @@ class MakeLayerFromGraphGdeltTool(object):
             direction="Input"
         )
 
-        params = [eventDate, theme, limit, outFeatures, inFeatures]
+        params = [eventDate, theme, limit, outFeatures, inFeatures, customTheme]
         return params
 
     def isLicensed(self):
@@ -238,6 +246,13 @@ class MakeLayerFromGraphGdeltTool(object):
         has been changed."""
         if (parameters[0].altered):
             parameters[3].value = "Themes_{0}".format(str(parameters[0].value.date()).replace("-", ""))
+        if (parameters[5].altered):
+            custom_theme = parameters[5].valueAsText
+            if (custom_theme not in parameters[1].filter.list):
+                theme_list = parameters[1].filter.list
+                theme_list.append(custom_theme)
+                parameters[1].filter.list = theme_list
+                parameters[1].value = custom_theme
         return
 
     def updateMessages(self, parameters):
