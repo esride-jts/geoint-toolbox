@@ -82,7 +82,9 @@ class gdelt_graph_record(object):
 
         # DATE creates a C-long overflow
         # must be treated as a string!
-        self.__values[9] = str(self.__values[9])
+        # Converted to a datetime value
+        date_text = str(self.__values[9])
+        self.__values[9] = datetime.datetime.strptime(date_text, "%Y%m%d%H%M%S")
 
     def __get_id(self):
         return self.__id

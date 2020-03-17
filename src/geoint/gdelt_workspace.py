@@ -170,7 +170,7 @@ class gdelt_workspace(object):
             ["Location_Lat", "DOUBLE"],
             ["Location_Long", "DOUBLE"],
             ["Location_FeatureID", "TEXT", "Location_FeatureID", 255],
-            ["DATE", "TEXT", "DATE", 255],
+            ["DATE", "DATE"],
             ["SourceCommonName", "TEXT", "SourceCommonName", 255],
             ["DocumentIdentifier", "TEXT", "DocumentIdentifier", 1000]
         ]
