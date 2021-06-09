@@ -50,7 +50,7 @@ class gdelt_event(object):
         return self.__location
 
     def __set_location(self, location):
-        self.__location == location
+        self.__location = location
 
     def __get_fullname(self):
         return self.__fullname
